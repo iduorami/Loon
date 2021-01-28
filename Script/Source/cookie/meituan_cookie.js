@@ -5,40 +5,16 @@ const signurlKey = 'chavy_signurl_meituan'
 const signheaderKey = 'chavy_signheader_meituan'
 const signbodyKey = 'chavy_signbody_meituan'
 const chavy = init()
-const tokenurlVal = chavy.getdata(tokenurlKey)
-const tokenheaderVal = chavy.getdata(tokenheaderKey)
-const signurlVal = chavy.getdata(signurlKey)
-const signheaderVal = chavy.getdata(signheaderKey)
-const signBodyVal = chavy.getdata(signbodyKey)
 
-sign()
-
-function sign() {
-  const url = { url: signurlVal, headers: JSON.parse(signheaderVal), body: signBodyVal }
-  chavy.post(url, (error, response, data) => {
-    chavy.log(`${cookieName}, data: ${data}`)
-    const result = JSON.parse(data)
-    let subTitle = ``
-    let detail = ``
-    if (result.code == 0) {
-      subTitle = `签到结果: 成功`
-      detail = `本周连签: ${result.data[0].circleSignTimes}天`
-      for (r of result.data[0].signInAwardRecords) {
-        const rinfo = JSON.parse(r.info)
-        if (rinfo.type == `cash`) detail += `, 奖励金: ${rinfo.amount / 100}元`
-        else if (rinfo.type == `coupon`) detail += `\n优惠券: ${rinfo.name}: ${rinfo.amount}元 (${rinfo.condition})`
-        else detail += `\n未知奖励!`
-      }
-    } else if (result.code == 2002) {
-      subTitle = `签到结果: 成功 (重复签到)`
-      detail = `说明: ${result.msg}`
-    } else {
-      subTitle = `签到结果: 失败`
-      detail = `编码: ${result.code}, 说明: ${result.msg}`
-    }
-    chavy.msg(cookieName, subTitle, detail)
-    chavy.done()
-  })
+const requrl = $request.url
+if ($request && $request.method != 'OPTIONS' && requrl.match(/\/evolve\/signin\/signpost\//)) {
+  const signurlVal = requrl
+  const signheaderVal = JSON.stringify($request.headers)
+  const signbodyVal = $request.body
+  if (signurlVal) chavy.setdata(signurlVal, signurlKey)
+  if (signheaderVal) chavy.setdata(signheaderVal, signheaderKey)
+  if (signbodyVal) chavy.setdata(signbodyVal, signbodyKey)
+  chavy.msg(cookieName, `获取Cookie: 成功`, ``)
 }
 
 function init() {
@@ -67,7 +43,7 @@ function init() {
     }
     if (isQuanX()) {
       url.method = 'GET'
-      $task.fetch(url).then((resp) => cb(null, resp, resp.body))
+      $task.fetch(url).then((resp) => cb(null, {}, resp.body))
     }
   }
   post = (url, cb) => {
@@ -76,7 +52,7 @@ function init() {
     }
     if (isQuanX()) {
       url.method = 'POST'
-      $task.fetch(url).then((resp) => cb(null, resp, resp.body))
+      $task.fetch(url).then((resp) => cb(null, {}, resp.body))
     }
   }
   done = (value = {}) => {
@@ -84,3 +60,4 @@ function init() {
   }
   return { isSurge, isQuanX, msg, log, getdata, setdata, get, post, done }
 }
+chavy.done()
